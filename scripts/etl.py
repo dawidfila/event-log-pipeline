@@ -4,6 +4,7 @@ from pymongo import MongoClient
 from datetime import datetime
 import pandas as pd
 
+
 load_dotenv()
 
 # Connect to MongoDB
@@ -25,6 +26,7 @@ raw_logs = list(raw_collection.find())
 
 if not raw_logs:
     print("No logs found in raw_logs collection.")
+    client.close()
     exit()
 
 # Transform - Convert to DataFrame
@@ -47,9 +49,39 @@ summary_df = (
     .reset_index(name="total_events")
 )
 
-# Load - Save aggregated data into MongoDB collection `daily_summary`
-summary_collection.delete_many({})  # (optional) clear previous summary
-summary_collection.insert_many(summary_df.to_dict("records"))
+# LOAD - Save aggregated data using UPSERT
+upsert_count = 0
+update_count = 0
+insert_count = 0
 
-print(f"✅ Aggregated {len(summary_df)} records and saved to daily_summary.")
+for record in summary_df.to_dict("records"):
+    # Convert date (object datetime.date) to string for MongoDB
+    record["date"] = str(record["date"])
+    
+    # Unique identifier for the record (composite key)
+    filter_query = {
+        "date": record["date"],
+        "country": record["country"],
+        "event_type": record["event_type"]
+    }
+    
+    # Excecuting upsert operation
+    result = summary_collection.update_one(
+        filter_query,           # Find record by date + country + event_type
+        {"$set": record},       # If exists - update, if not - insert
+        upsert=True            
+    )
+    
+    upsert_count += 1
+    
+    # Counting how many updates vs inserts
+    if result.matched_count > 0:
+        update_count += 1
+    else:
+        insert_count += 1
+
+print(f"Upsert completed: {upsert_count} operations")
+print(f"Updated existing records: {update_count}")
+print(f"Inserted new records: {insert_count}")
+
 client.close()
