@@ -1,11 +1,19 @@
 import os
+import logging
 from dotenv import load_dotenv
 from pymongo import MongoClient
 from datetime import datetime
 import pandas as pd
 
-
 load_dotenv()
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+logger = logging.getLogger(__name__)
 
 # Connect to MongoDB
 username = os.getenv("MONGO_USERNAME")
@@ -25,7 +33,7 @@ summary_collection = db.daily_summary
 raw_logs = list(raw_collection.find())
 
 if not raw_logs:
-    print("No logs found in raw_logs collection.")
+    logger.warning("No logs found in raw_logs collection.")
     client.close()
     exit()
 
@@ -80,8 +88,8 @@ for record in summary_df.to_dict("records"):
     else:
         insert_count += 1
 
-print(f"Upsert completed: {upsert_count} operations")
-print(f"Updated existing records: {update_count}")
-print(f"Inserted new records: {insert_count}")
+logger.info(f"Upsert completed: {upsert_count} operations")
+logger.info(f"Updated: {update_count}")
+logger.info(f"Inserted: {insert_count}")
 
 client.close()
