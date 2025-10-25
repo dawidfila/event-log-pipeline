@@ -4,10 +4,19 @@ from faker import Faker
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
+import logging
 
 load_dotenv() 
 
 fake = Faker()
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+logger = logging.getLogger(__name__)
 
 def generate_log(n=50):
     logs = []
@@ -42,7 +51,7 @@ def save_to_mongo(logs):
     db = client.logs_db
     raw_collection = db.raw_logs
     raw_collection.insert_many(logs)
-    print(f"{len(logs)} logs saved in MongoDB")
+    logger.info(f"{len(logs)} logs saved in MongoDB")
     client.close()
 
 if __name__ == "__main__":
