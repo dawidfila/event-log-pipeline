@@ -41,10 +41,12 @@ def generate_log(n=50):
 def save_to_mongo(logs):
     username = os.getenv("MONGO_USERNAME")
     password = os.getenv("MONGO_PASSWORD")
-    database = os.getenv("MONGO_DATABASE")    
+    database = os.getenv("MONGO_DATABASE")
+    mongo_host = os.getenv("MONGO_HOST", "localhost")
+    mongo_port = os.getenv("MONGO_PORT", "27017") 
     
     client = MongoClient(
-        f"mongodb://{username}:{password}@localhost:27017/{database}",
+        f"mongodb://{username}:{password}@{mongo_host}:{mongo_port}/{database}",
         authSource='admin'
     )
     
