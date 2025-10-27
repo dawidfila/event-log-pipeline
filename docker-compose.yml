@@ -26,10 +26,11 @@ services:
   postgres:
     image: postgres:14
     container_name: airflow_postgres
+    env_file: .env 
     environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -39,24 +40,56 @@ services:
       interval: 5s
       retries: 5
 
+  # Airflow Init - one-time database setup
+  airflow-init:
+    build: .
+    container_name: airflow_init
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+    networks:
+      - pipeline_network
+    command: >
+      bash -c "
+      airflow db migrate &&
+      airflow users create \
+        --username admin \
+        --firstname Admin \
+        --lastname User \
+        --role Admin \
+        --email admin@example.com \
+        --password admin || true"
+    restart: on-failure
+
   # Airflow Webserver
   airflow-webserver:
     build: .
     container_name: airflow_webserver
     restart: unless-stopped
+    env_file: .env  
     depends_on:
       postgres:
         condition: service_healthy
       mongo:
         condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-      AIRFLOW__CORE__FERNET_KEY: ''
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
       AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'true'
-      AIRFLOW__WEBSERVER__SECRET_KEY: 'your-secret-key-change-in-production'
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_WEBSERVER_SECRET_KEY}
       # MongoDB connection info
       MONGO_USERNAME: ${MONGO_USERNAME}
       MONGO_PASSWORD: ${MONGO_PASSWORD}
@@ -70,10 +103,7 @@ services:
       - airflow_logs:/opt/airflow/logs
     ports:
       - "8080:8080"
-    command: >
-      bash -c "airflow db init &&
-               airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin &&
-               airflow webserver"
+    command: airflow webserver
     networks:
       - pipeline_network
     healthcheck:
@@ -87,17 +117,21 @@ services:
     build: .
     container_name: airflow_scheduler
     restart: unless-stopped
+    env_file: .env 
     depends_on:
       postgres:
         condition: service_healthy
-      airflow-webserver:
+      mongo:
         condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-      AIRFLOW__CORE__FERNET_KEY: ''
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
       # MongoDB connection info
       MONGO_USERNAME: ${MONGO_USERNAME}
       MONGO_PASSWORD: ${MONGO_PASSWORD}
@@ -112,6 +146,12 @@ services:
     command: airflow scheduler
     networks:
       - pipeline_network
+    healthcheck:
+      test: ["CMD", "airflow", "jobs", "check", "--job-type", "SchedulerJob", "--hostname", "$(hostname)"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
 volumes:
   mongo_data:
