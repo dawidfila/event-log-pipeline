@@ -31,7 +31,7 @@ This project uses the following major frameworks and libraries:
 
 ## Pipeline Stages:
 
-### 1. Log Generation (generate_logs.py)
+### 1. Log Generation
 
 - Creates synthetic log data using Faker library
 
@@ -42,7 +42,7 @@ This project uses the following major frameworks and libraries:
 - Stores raw logs in MongoDB
 
 
-### 2. ETL Process (etl.py)
+### 2. ETL Process
 
 - Extract: Retrieves raw logs from MongoDB
 
@@ -53,7 +53,7 @@ This project uses the following major frameworks and libraries:
 - Load: Performs upsert operations to MongoDB daily summary collection
 
 
-### 3. Analysis & Visualization (analysis.py)
+### 3. Analysis & Visualization
 
 #### Generates 5 types of analytical charts:
 
@@ -70,7 +70,7 @@ This project uses the following major frameworks and libraries:
 Exports summary statistics to CSV files
 
 
-### 4. Orchestration (log_pipeline_dag.py)
+### 4. Orchestration
 
 - Apache Airflow DAG schedules pipeline execution
 
