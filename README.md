@@ -77,3 +77,11 @@ Exports summary statistics to CSV files
 - Runs hourly with automatic retries
 
 - Ensures sequential task dependencies
+
+## Environment Setup
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/dawidfila/event-log-pipeline
+cd event-log-pipeline
