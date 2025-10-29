@@ -87,8 +87,63 @@ git clone https://github.com/dawidfila/event-log-pipeline
 cd event-log-pipeline
 ```
 
-### Create environment file
+### 2. Create environment file
 
 ```bash
 cp .env.example .env
+```
+
+#### Edit .env and configure your credentials:
+
+```bash
+# Generate Fernet key:
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+
+# Generate webserver secret:
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+### 3. Start the services
+
+Build Docker images
+
+```bash
+docker-compose build
+```
+
+Initialize Airflow database 
+
+```bash
+docker-compose up airflow-init
+```
+
+Start all services
+
+```bash
+docker-compose up -d
+```
+
+If the default admin user doesn't work or wasn't created:
+
+**Check running containers:**
+
+```bash
+docker ps
+```
+**Enter the webserver container:**
+
+```bash
+docker exec -it airflow_webserver bash
+```
+
+**Create admin user manually:**
+
+```bash
+airflow users create \
+    --username admin \
+    --firstname Admin \
+    --lastname User \
+    --role Admin \
+    --email admin@example.com \
+    --password admin
 ```
