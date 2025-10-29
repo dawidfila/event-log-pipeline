@@ -85,3 +85,10 @@ Exports summary statistics to CSV files
 ```bash
 git clone https://github.com/dawidfila/event-log-pipeline
 cd event-log-pipeline
+```
+
+### Create environment file
+
+```bash
+cp .env.example .env
+```
