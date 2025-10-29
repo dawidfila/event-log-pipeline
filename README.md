@@ -67,7 +67,7 @@ This project uses the following major frameworks and libraries:
 
 - Events heatmap (date vs event type)
 
-- Exports summary statistics to CSV files
+Exports summary statistics to CSV files
 
 
 ### 4. Orchestration (log_pipeline_dag.py)
