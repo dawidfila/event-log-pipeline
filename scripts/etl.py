@@ -75,7 +75,7 @@ for record in summary_df.to_dict("records"):
         "event_type": record["event_type"]
     }
     
-    # Excecuting upsert operation
+    # Executing upsert operation
     result = summary_collection.update_one(
         filter_query,           # Find record by date + country + event_type
         {"$set": record},       # If exists - update, if not - insert
